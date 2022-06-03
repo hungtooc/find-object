@@ -1,0 +1,35 @@
+I. mô tả
+
+1. đề bài
+- xác định vị trí tương đối của vật so với bốn điểm neo cố định cho trước?
+Biết:
+- vị trí bốn điểm neo là cố định
+- vị trí cánh tay robot là cố định
+- vị trí camera là không cố định
+- vị trí vật là không cố định
+(--> vị trí điểm neo và vị trí robot luôn không đổi. Nếu biết vị trí vật ở đâu so với điểm neo thì cũng biết vật ở đâu so với robot)
+
+I.Các bước thực hiện
+
+0.bước chuẩn bị
+
+- bước 1: đặt robot và các điểm neo cố định
+	+ cách làm: 
+		- số điểm neo là 4, tạo thành hình chữ nhật.
+		- robot đặt ở giữa hình chữ nhật, phía trên cao.
+		- vị trí bốn điểm neo nên đặt trùng với vị trí giới hạn robot có thể với tới.
+- bước 2: tính vị trí tương đối giữa điểm neo và robot
+	+ cách làm: 
+		- nếu đặt robot chính giữa điểm neo thì vị trí robot là (0.5,0.5) 
+		- ...
+	
+- bước 3: lưu trị ví điểm neo vào file config.txt
+1.bước khởi động
+- bước 1: load vị trí điểm neo so với robot trong file config.txt
+
+2.bước vận hành
+- bước 1: xác định tọa độ vật
+- bước 2: tính vị trí tương đối giữa vật và điểm neo
+- bước 3: tính vị trí tương đối giữa vật và robot
+- bước 4: điều khiển robot gắp vật tới vị trí đích.
+
