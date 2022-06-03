@@ -29,7 +29,14 @@ I.Các bước thực hiện
 
 2.bước vận hành
 - bước 1: xác định tọa độ vật
+	+ cách làm: dùng code SIFT
 - bước 2: tính vị trí tương đối giữa vật và điểm neo
-- bước 3: tính vị trí tương đối giữa vật và robot
-- bước 4: điều khiển robot gắp vật tới vị trí đích.
+	+ cách làm: 
+		- tìm 2 đường thẳng EF, GH đi qua tọa độ vật, song song với 2 cạch hình chữ nhật. 
+		- tính vị trí vật so với điểm neo = (x,y) : (E0/EF, GO/GH) 
+	
+- bước 3: tính khoảng cách giữa vật và robot
+	+ cách làm: 
+		- khoảng cách giữa robot - vật (x,y) : (0.5-E0/EF, 0.5-GO/GH). note: giá trị có thể âm để phân biệt hướng.
+- bước 4: điều khiển robot gắp vật tới vị trí đích.sc
 
