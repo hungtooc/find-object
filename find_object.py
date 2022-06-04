@@ -77,7 +77,7 @@ def get_object_coord(object_image, frame, H, show_conner=False):
     return center, corners
 
 
-def find_homography(object_image, frame):
+def find_homography(object_image, frame, detector, matcher, desc1, object_feature):
     """ 
     hàm tìm điểm tương đồng giữa object và image. 
     return: Homography"""
@@ -104,11 +104,9 @@ if __name__ == '__main__':
 
     # load object & calculate object feature
     image_path = 'object_01.jpg'
-    object_image = cv.imread(cv.samples.findFile(
-        image_path), cv.IMREAD_GRAYSCALE)
+    object_image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
     object_image = cv2.resize(object_image, (120, 120))
-    object_feature, desc1 = detector.detectAndCompute(
-        object_image, None)  # get feature of object
+    object_feature, desc1 = detector.detectAndCompute(object_image, None)  # get feature of object
 
     # debug
     show_corner = False
