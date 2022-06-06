@@ -42,9 +42,9 @@ def init_feature(name):
     matcher = cv.BFMatcher(norm)
 
     
-    index_params = dict(algorithm=1, trees=30)
-    search_params = dict(checks=20)
-    matcher = cv2.FlannBasedMatcher(index_params, search_params)
+    # index_params = dict(algorithm=1, trees=30)
+    # search_params = dict(checks=20)
+    # matcher = cv2.FlannBasedMatcher(index_params, search_params)
 
     return detector, matcher
 
@@ -99,43 +99,43 @@ def find_homography(object_image, frame, detector, matcher, desc1, object_featur
     return Homography
 
 
-if __name__ == '__main__':
-    # init
-    detector, matcher = init_feature('sift')
-    cap = cv2.VideoCapture(0)  # 0 là index camera
-    cv2.namedWindow("find_object", cv2.WINDOW_NORMAL)
+# if __name__ == '__main__':
+#     # init
+#     detector, matcher = init_feature('sift')
+#     cap = cv2.VideoCapture(0)  # 0 là index camera
+#     cv2.namedWindow("find_object", cv2.WINDOW_NORMAL)
 
-    # load object & calculate object feature
-    image_path = 'object_01.jpg'
-    object_image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
-    object_image = cv2.resize(object_image, (120, 120))
-    object_feature, desc1 = detector.detectAndCompute(object_image, None)  # get feature of object
+#     # load object & calculate object feature
+#     image_path = 'object_01.jpg'
+#     object_image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
+#     object_image = cv2.resize(object_image, (120, 120))
+#     object_feature, desc1 = detector.detectAndCompute(object_image, None)  # get feature of object
 
-    # debug
-    show_corner = False
+#     # debug
+#     show_corner = False
 
-    while True:
+#     while True:
 
-        _, frame = cap.read()  # read frame from camera
-        homography = find_homography(object_image, frame)
-        if homography is not None:
-            object_coord, object_corners = get_object_coord(object_image, frame, homography)
-            if object_coord:
-                cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
-                cv2.putText(frame, f"{object_coord}", object_coord,
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+#         _, frame = cap.read()  # read frame from camera
+#         homography = find_homography(object_image, frame)
+#         if homography is not None:
+#             object_coord, object_corners = get_object_coord(object_image, frame, homography)
+#             if object_coord:
+#                 cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
+#                 cv2.putText(frame, f"{object_coord}", object_coord,
+#                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
 
-                if show_corner == True:
-                    for corner in object_corners:
-                        cv2.circle(frame, corner, 3, (0, 255, 0), -1)
+#                 if show_corner == True:
+#                     for corner in object_corners:
+#                         cv2.circle(frame, corner, 3, (0, 255, 0), -1)
 
-        cv2.imshow("find_object", frame)
-        k = cv.waitKey(1)
-        if k == ord('q'):
-            break
+#         cv2.imshow("find_object", frame)
+#         k = cv.waitKey(1)
+#         if k == ord('q'):
+#             break
 
-    cap.release()
-    cv.destroyAllWindows()
+#     cap.release()
+#     cv.destroyAllWindows()
 
 GOOD_IDCARD_MATCHER = 150
 
@@ -162,10 +162,16 @@ fill me
     matches = sorted(matches, key=lambda x: x[0].distance)
     # Ratio test, to get good matches.
     good = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good.append(m)
-    #
+    # try:
+    # print(type(matches), len(matches), type(matches[0]))
+    for match in matches:
+        if len(match) ==2:
+            m, n = match
+            if m.distance < 0.75 * n.distance:
+                good.append(m)
+    # except:
+    #     print(type(matches), len(matches), type(matches[0]))
+    #     exit(-1)
     # queryIndex for the small object, trainIndex for the scene )
     if len(good) > GOOD_IDCARD_MATCHER:
         # print("len(good)", len(good))
@@ -190,14 +196,20 @@ fill me
 
     return None, len(good), (None, None)
 
-def getobject(image, object_images, detector, matcher, object_features):
+def getobject(image, object_images, detector, matcher, object_features, debug=False):
     '''
     fill me
     '''
     max = 0
     result = [None, -1, 0]
-    image_feature = detector.detectAndCompute(image, None)
-
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image_feature = detector.detectAndCompute(gray_image, None)
+    print("showing debug", debug)
+    if debug:
+        
+        kpts2, descs2 = image_feature
+        image = cv.drawKeypoints(image,kpts2,image,flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # cv.imwrite('sift_keypoints.jpg',img)
     for i, (object_image, object_feature) in enumerate(zip(object_images, object_features)):
         matched_info = ObjectMatching(image, object_image, matcher, object_feature, image_feature)
         if matched_info[1] >= max:

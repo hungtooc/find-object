@@ -13,6 +13,7 @@ class VideoThread(QThread):
     #image
     change_camera_signal = pyqtSignal(np.ndarray)
     change_currentobject_signal = pyqtSignal(np.ndarray)
+    change_debug_signal = pyqtSignal(np.ndarray)
 
     # text
     change_currentobjecttype_signal = pyqtSignal(str)
@@ -22,48 +23,52 @@ class VideoThread(QThread):
     detector, matcher = init_feature('sift')
     # load object & calculate object feature
     image_paths = ["images/object_01.png", "images/object_02.png", "images/object_demo.jpg"]
-    object_images = [cv2.imread(image_path) for image_path in image_paths]
+    object_images = [cv2.imread(image_path, cv2.IMREAD_GRAYSCALE) for image_path in image_paths]
     object_features = []
-    for object_image in object_images:
-        object_features.append(detector.detectAndCompute(object_image, None))
+    for index, object_image in enumerate(object_images):
+        feature = detector.detectAndCompute(object_image, None)
+        kpts2, descs2 = feature
+        img = cv.drawKeypoints(object_image,kpts2,object_image,flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        cv.imwrite(f'temps/sift_keypoints_{index}.jpg',img)
+        object_features.append(feature)
     # object_features = [detector.detectAndCompute(object_image, None) for object_image in object_images]
     
 
     def run(self, camera_index=2):
         # capture from web cam
         cap = cv2.VideoCapture(camera_index)
-        global mark_center, mark_corner
+        global mark_center, mark_corner, debug
         while True:
             ret, frame = cap.read()
             if ret:
                 # detected_object, object_type, _ = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features)
-                output = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features)
+                output = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features, debug )
                 # print("type(output)", type(output))
                 if output is not None:
                     # print("output", output)
                     bestest_object, confident_score, (object_coord, object_corners) = output[0]
                     object_type = output[1]
-                    print("detected_object", object_type)
+                    # print("detected_object", object_type)
                     if bestest_object is not None:
                         # cv2.imwrite("detected_object.jpg", bestest_object)
-                        bestest_object = cv2.resize(bestest_object, (240,240))
+                        # bestest_object = cv2.resize(bestest_object, (240,240))
                         self.change_currentobject_signal.emit(bestest_object)
                         self.change_currentobjecttype_signal.emit(object_names[object_type])
                         
                     if object_coord:
                         self.change_currentobjectpos_signal.emit(str(object_coord))
                         if mark_center:
-                            print("check box center True")
+                            # print("check box center True")
                             cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
                             # cv2.putText(frame, f"{object_coord}", object_coord, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
-                        else:
-                            print("check box center False")
+                        # else:
+                            # print("check box center False")
                         if mark_corner:
-                            print("check box corner True")
+                            # print("check box corner True")
                             for corner in object_corners:
                                 cv2.circle(frame, corner, 3, (0, 255, 0), -1)
-                        else:
-                            print("check box corner False")
+                        # else:
+                            # print("check box corner False")
                 self.change_camera_signal.emit(frame)
 
 
@@ -83,17 +88,8 @@ def update_camera(cv_img):
     global mark_center, mark_corner
     qt_img = convert_cv_qt(cv_img)
     ui.camera_label.setPixmap(qt_img)
-    if ui.checkBox_markcenter.isChecked():
-        
-        mark_center = True
-    else:
-        mark_center = False
-        
-    if ui.checkBox_markcorner.isChecked():
-        mark_corner = True
-        
-    else:
-        mark_corner = False
+
+    
         
 
 def update_currentobject(cv_img):
@@ -108,21 +104,38 @@ def update_currentobjectpos(pos):
     ui.label_current_object_pos.setText(pos)
 
 
+def set_debug(state):
+    global debug
+    debug = state
+
+def set_mark_center(state):
+    global mark_center
+    mark_center = state
+
+def set_mark_corner(state):
+    global mark_corner
+    mark_corner = state
 
 if __name__ == "__main__":
     object_names = ["object a", "object b", "object c"]
-    mark_center = True
-    mark_corner = True
+    
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
+    mark_center = ui.checkBox_markcenter.isChecked()
+    mark_corner = ui.checkBox_markcorner.isChecked()
+    debug = ui.checkBox_markdebug.isChecked()
+
     ui.thread = VideoThread()
     
     # update image
     ui.thread.change_camera_signal.connect(update_camera)
     ui.thread.change_currentobject_signal.connect(update_currentobject)
     # update text
+    ui.checkBox_markdebug.toggled.connect(set_debug)
+    ui.checkBox_markcenter.toggled.connect(set_mark_center)
+    ui.checkBox_markcorner.toggled.connect(set_mark_corner)
     ui.thread.change_currentobjecttype_signal.connect(update_currentobjecttype)
     ui.thread.change_currentobjectpos_signal.connect(update_currentobjectpos)
     ui.thread.start()
