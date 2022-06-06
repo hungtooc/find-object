@@ -40,6 +40,12 @@ def init_feature(name):
     detector = cv.SIFT_create()
     norm = cv.NORM_L2
     matcher = cv.BFMatcher(norm)
+
+    
+    index_params = dict(algorithm=1, trees=30)
+    search_params = dict(checks=20)
+    matcher = cv2.FlannBasedMatcher(index_params, search_params)
+
     return detector, matcher
 
 
@@ -66,8 +72,7 @@ def get_object_coord(object_image, frame, H, show_conner=False):
     h1, w1 = object_image.shape[:2]
 
     corners = np.float32([[0, 0], [w1, 0], [w1, h1], [0, h1]])
-    corners = np.int32(cv.perspectiveTransform(
-        corners.reshape(1, -1, 2), H).reshape(-1, 2))
+    corners = np.int32(cv.perspectiveTransform(corners.reshape(1, -1, 2), H).reshape(-1, 2))
 
     L1 = line(corners[0], corners[2])  # đường chéo AC
     L2 = line(corners[1], corners[3])  # đường chéo BD
@@ -86,11 +91,9 @@ def find_homography(object_image, frame, detector, matcher, desc1, object_featur
         frame_gray, None)  # calculate feature of frame
 
     raw_matches = matcher.knnMatch(desc1, trainDescriptors=desc2, k=2)
-    p1, p2, kp_pairs = filter_matches(
-        object_feature, frame_feature, raw_matches)  # compare features
+    p1, p2, kp_pairs = filter_matches(object_feature, frame_feature, raw_matches)  # compare features
     if len(p1) >= 4:
-        Homography = cv.findHomography(p1, p2, cv.RANSAC, 5.0)[
-            0]  # tìm điểm tương đồng
+        Homography = cv.findHomography(p1, p2, cv.RANSAC, 5.0)[0]  # tìm điểm tương đồng
     else:
         Homography = None
     return Homography
@@ -116,8 +119,7 @@ if __name__ == '__main__':
         _, frame = cap.read()  # read frame from camera
         homography = find_homography(object_image, frame)
         if homography is not None:
-            object_coord, object_corners = get_object_coord(
-                object_image, frame, homography)
+            object_coord, object_corners = get_object_coord(object_image, frame, homography)
             if object_coord:
                 cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
                 cv2.putText(frame, f"{object_coord}", object_coord,
@@ -134,3 +136,79 @@ if __name__ == '__main__':
 
     cap.release()
     cv.destroyAllWindows()
+
+GOOD_IDCARD_MATCHER = 150
+
+
+
+def ObjectMatching(image: object, object_image: object, matcher, object_feature, image_feature) -> object:
+    """
+compare two images.
+    :param image: checked image
+    :param object_image: check image
+    :return: bestest_object, match_rating
+    """
+
+    kpts1, descs1 = object_feature
+    kpts2, descs2 = image_feature
+    
+    try:
+        if descs1 is not None and descs2 is not None:
+            matches = matcher.knnMatch(descs1, descs2, 2)
+        else:
+            return None, 0, (None, None)
+    except:
+        print("error matcher.knnMatch", descs1, descs2)
+        return None, 0, (None, None)
+
+    # Sort by their distance.
+    matches = sorted(matches, key=lambda x: x[0].distance)
+    # Ratio test, to get good matches.
+    good = []
+    for m, n in matches:
+        if m.distance < 0.75 * n.distance:
+            good.append(m)
+    #
+    # queryIndex for the small object, trainIndex for the scene )
+    if len(good) > GOOD_IDCARD_MATCHER:
+        # print("len(good)", len(good))
+        src_pts = np.float32([kpts1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kpts2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+        Homography = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 4.0)[0]
+        
+        if Homography is not None:
+            try:
+                h, w = image.shape[:2]
+                pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+                h, w = object_image.shape[:2]
+                dst = cv2.perspectiveTransform(pts, Homography)
+                perspectiveM = cv2.getPerspectiveTransform(np.float32(dst), pts)
+                bestest_object = cv2.warpPerspective(image, perspectiveM, (w, h), borderMode=cv2.BORDER_TRANSPARENT)
+            except:
+                bestest_object = None
+            #
+            object_coord, object_corners = get_object_coord(object_image, image, Homography)
+            return bestest_object, len(good), (object_coord, object_corners)
+
+    return None, len(good), (None, None)
+
+def getobject(image, object_images, detector, matcher, object_features):
+    '''
+    detect idcard im image & idcard type
+    nhập vào một image và các card cần tìm, trả về thông tin: detected_card, card_type, rating
+    :param image: image input
+    :param idcards: the idcard you want to find
+    :return: detected_image_idcard, idcardtype, rating
+    '''
+    max = 0
+    result = [None, -1, 0]
+    image_feature = detector.detectAndCompute(image, None)
+
+    for i, (object_image, object_feature) in enumerate(zip(object_images, object_features)):
+        matched_info = ObjectMatching(image, object_image, matcher, object_feature, image_feature)
+        if matched_info[1] >= max:
+            object_type = i
+            final = matched_info
+            max = matched_info[1]
+    return final, object_type
