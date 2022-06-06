@@ -21,11 +21,6 @@ class VideoThread(QThread):
 
     detector, matcher = init_feature('sift')
     # load object & calculate object feature
-    image_path = "images/object_demo.jpg"
-    object_image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
-    object_image = cv2.resize(object_image, (120, 120))
-    object_feature, desc1 = detector.detectAndCompute(object_image, None)  # get feature of object
-    show_corner = False  # debug
     image_paths = ["images/object_01.png", "images/object_02.png", "images/object_demo.jpg"]
     object_images = [cv2.imread(image_path) for image_path in image_paths]
     object_features = []
