@@ -143,10 +143,7 @@ GOOD_IDCARD_MATCHER = 150
 
 def ObjectMatching(image: object, object_image: object, matcher, object_feature, image_feature) -> object:
     """
-compare two images.
-    :param image: checked image
-    :param object_image: check image
-    :return: bestest_object, match_rating
+fill me
     """
 
     kpts1, descs1 = object_feature
@@ -195,11 +192,7 @@ compare two images.
 
 def getobject(image, object_images, detector, matcher, object_features):
     '''
-    detect idcard im image & idcard type
-    nhập vào một image và các card cần tìm, trả về thông tin: detected_card, card_type, rating
-    :param image: image input
-    :param idcards: the idcard you want to find
-    :return: detected_image_idcard, idcardtype, rating
+    fill me
     '''
     max = 0
     result = [None, -1, 0]

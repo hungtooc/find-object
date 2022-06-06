@@ -55,10 +55,6 @@ class VideoThread(QThread):
                         self.change_currentobject_signal.emit(bestest_object)
                         self.change_currentobjecttype_signal.emit(object_names[object_type])
                         
-                    # homography = find_homography(
-                    #     self.object_image, frame, self.detector, self.matcher, self.desc1, self.object_feature)
-                    # if homography is not None:
-                        # object_coord, object_corners = get_object_coord(self.object_image, frame, homography)
                     if object_coord:
                         self.change_currentobjectpos_signal.emit(str(object_coord))
                         if mark_center:
