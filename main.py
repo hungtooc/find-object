@@ -42,7 +42,6 @@ class VideoThread(QThread):
         global mark_center, mark_corner, debug, image_resolution
         while True:
             ret, frame = cap.read()
-            print(frame.shape)
             if ret:
                 circle_stat = get_circle(frame)
                 if circle_stat is not None:
@@ -78,6 +77,7 @@ class VideoThread(QThread):
                 #         # else:
                 #             # print("check box corner False")
                 self.change_camera_signal.emit(frame)
+            else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
 def get_circle(image, min_size = 100):
     stat_max = None
