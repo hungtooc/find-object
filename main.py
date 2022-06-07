@@ -18,18 +18,18 @@ class VideoThread(QThread):
     # text
     change_currentobjecttype_signal = pyqtSignal(str)
     change_currentobjectpos_signal = pyqtSignal(str)
-
+    change_currentobjectsize_signal = pyqtSignal(str)
 
     detector, matcher = init_feature('sift')
     # load object & calculate object feature
-    image_paths = ["images/object_01.png", "images/object_02.png", "images/object_demo.jpg"]
-    object_images = [cv2.imread(image_path, cv2.IMREAD_GRAYSCALE) for image_path in image_paths]
+    image_paths = ["images/object_01.png", "images/object_02.png", "images/object_03.png"]
+    object_images = [cv2.imread(image_path) for image_path in image_paths]
     object_features = []
     for index, object_image in enumerate(object_images):
         feature = detector.detectAndCompute(object_image, None)
         kpts2, descs2 = feature
         img = cv.drawKeypoints(object_image,kpts2,object_image,flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        cv.imwrite(f'temps/sift_keypoints_{index}.jpg',img)
+        # cv.imwrite(f'temps/sift_keypoints_{index}.jpg',img)
         object_features.append(feature)
     # object_features = [detector.detectAndCompute(object_image, None) for object_image in object_images]
     
@@ -45,69 +45,30 @@ class VideoThread(QThread):
             if ret:
                 circle_stat = get_circle(frame)
                 if circle_stat is not None:
-                    cv2.rectangle(frame, (circle_stat[0], circle_stat[1]), (circle_stat[0] + circle_stat[2], circle_stat[1] + circle_stat[3]), (255,255,0))
-                    circle_object = frame[circle_stat[1]:circle_stat[1] + circle_stat[3], circle_stat[0]:circle_stat[0] + circle_stat[2]]
-                    self.change_currentobject_signal.emit(circle_object)
-                # detected_object, object_type, _ = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features)
-                # output = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features, debug )
-                # # print("type(output)", type(output))
-                # if output is not None:
-                #     # print("output", output)
-                #     bestest_object, confident_score, (object_coord, object_corners) = output[0]
-                #     object_type = output[1]
-                #     # print("detected_object", object_type)
-                #     if bestest_object is not None:
-                #         # cv2.imwrite("detected_object.jpg", bestest_object)
-                #         # bestest_object = cv2.resize(bestest_object, (240,240))
-                #         self.change_currentobject_signal.emit(bestest_object)
-                #         self.change_currentobjecttype_signal.emit(object_names[object_type])
+                    center = (circle_stat[0] +  circle_stat[2]//2, circle_stat[1] +  circle_stat[3]//2)
+                    self.change_currentobjectpos_signal.emit(str(center))
+                    self.change_currentobjectsize_signal.emit(f"{circle_stat[2]}x{circle_stat[3]}")
+                    
+                    circle_object = frame[circle_stat[1]:circle_stat[1] + circle_stat[3], circle_stat[0]:circle_stat[0] + circle_stat[2]].copy()
+                    if mark_center:          
+                        cv2.circle(frame, center, 4, (255, 0, 0), -1)
+                        cv2.putText(frame, f"{center}", center, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0))
+                    if mark_corner:
+                        cv2.rectangle(frame, (circle_stat[0], circle_stat[1]), (circle_stat[0] + circle_stat[2], circle_stat[1] + circle_stat[3]), (255,255,0))
+                    
+                    ## classify
+                    output = getobject(circle_object, self.object_images, self.detector, self.matcher, self.object_features, debug )
+                    # print("type(output)", type(output))
+                    if output is not None:
                         
-                #     if object_coord:
-                #         self.change_currentobjectpos_signal.emit(str(object_coord))
-                #         if mark_center:
-                #             # print("check box center True")
-                #             cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
-                #             # cv2.putText(frame, f"{object_coord}", object_coord, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
-                #         # else:
-                #             # print("check box center False")
-                #         if mark_corner:
-                #             # print("check box corner True")
-                #             for corner in object_corners:
-                #                 cv2.circle(frame, corner, 3, (0, 255, 0), -1)
-                #         # else:
-                #             # print("check box corner False")
+                        bestest_object, confident_score, (object_coord, object_corners) = output[0]
+                        object_type = output[1]
+                        self.change_currentobjecttype_signal.emit(object_names[object_type])
+                        self.change_currentobject_signal.emit(circle_object)
+                        
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-def get_circle(image, min_size = 100):
-    stat_max = None
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.blur(gray,(5,5))
-    adaptive = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,5,2)
-    kernel = np.ones((2,2),np.uint8)
-    erosion = cv2.erode(adaptive,kernel,iterations = 1)
-    kernel = np.ones((5,5),np.uint8)
-    dilation = cv2.dilate(erosion,kernel,iterations = 1)
-    kernel = np.ones((10,10),np.uint8)
-    closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel)
-    
-    stats = cv2.connectedComponentsWithStats(closing)[2]
-    closing = cv2.cvtColor(closing, cv2.COLOR_GRAY2BGR)
-    if len(stats)>1:
-        stats = stats[1:]
-        condition = (0.9 <= stats[:, 2] / stats[:, 3])  *(stats[:, 2] / stats[:, 3] <=1.1) * (stats[:, 2] >= min_size) * (stats[:, 3] >= min_size)
-        stats = stats[condition]
-        if len(stats)>0:
-            stat_max =  stats[np.argmax(stats[:, -1])][:-1]
-            # cv2.rectangle(closing, (stat_max[0], stat_max[1]), (stat_max[0] + stat_max[2], stat_max[1] + stat_max[3]), (255,255,0))
-    
-    # images = (adaptive, erosion, dilation)
-    # stacked_image   = np.hstack(images)
-    # stacked_image = cv2.cvtColor(stacked_image, cv2.COLOR_GRAY2BGR)
-    # image   = np.hstack((image, stacked_image, closing))
-    # cv2.imshow("windows", closing)
-    # cv2.waitKey(1)
-    return stat_max
 
 def convert_cv_qt(cv_img):
     """Convert from an opencv image to QPixmap"""
@@ -140,6 +101,8 @@ def update_currentobjecttype(object_name):
 def update_currentobjectpos(pos):
     ui.label_current_object_pos.setText(pos)
 
+def update_currentobjectsize(pos):
+    ui.label_current_object_size.setText(pos)
 
 def set_debug(state):
     global debug
@@ -154,7 +117,7 @@ def set_mark_corner(state):
     mark_corner = state
 
 if __name__ == "__main__":
-    object_names = ["object a", "object b", "object c"]
+    object_names = ["A", "B", "C"]
     
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
@@ -163,7 +126,7 @@ if __name__ == "__main__":
     mark_center = ui.checkBox_markcenter.isChecked()
     mark_corner = ui.checkBox_markcorner.isChecked()
     debug = ui.checkBox_markdebug.isChecked()
-    image_resolution = (480,640)
+    
     ui.thread = VideoThread()
     
     # update image
@@ -173,8 +136,10 @@ if __name__ == "__main__":
     ui.checkBox_markdebug.toggled.connect(set_debug)
     ui.checkBox_markcenter.toggled.connect(set_mark_center)
     ui.checkBox_markcorner.toggled.connect(set_mark_corner)
+
     ui.thread.change_currentobjecttype_signal.connect(update_currentobjecttype)
     ui.thread.change_currentobjectpos_signal.connect(update_currentobjectpos)
+    ui.thread.change_currentobjectsize_signal.connect(update_currentobjectsize)
     ui.thread.start()
 
     MainWindow.show()

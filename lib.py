@@ -40,12 +40,6 @@ def init_feature(name):
     detector = cv.SIFT_create()
     norm = cv.NORM_L2
     matcher = cv.BFMatcher(norm)
-
-    
-    # index_params = dict(algorithm=1, trees=30)
-    # search_params = dict(checks=20)
-    # matcher = cv2.FlannBasedMatcher(index_params, search_params)
-
     return detector, matcher
 
 
@@ -99,44 +93,6 @@ def find_homography(object_image, frame, detector, matcher, desc1, object_featur
     return Homography
 
 
-# if __name__ == '__main__':
-#     # init
-#     detector, matcher = init_feature('sift')
-#     cap = cv2.VideoCapture(0)  # 0 là index camera
-#     cv2.namedWindow("find_object", cv2.WINDOW_NORMAL)
-
-#     # load object & calculate object feature
-#     image_path = 'object_01.jpg'
-#     object_image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
-#     object_image = cv2.resize(object_image, (120, 120))
-#     object_feature, desc1 = detector.detectAndCompute(object_image, None)  # get feature of object
-
-#     # debug
-#     show_corner = False
-
-#     while True:
-
-#         _, frame = cap.read()  # read frame from camera
-#         homography = find_homography(object_image, frame)
-#         if homography is not None:
-#             object_coord, object_corners = get_object_coord(object_image, frame, homography)
-#             if object_coord:
-#                 cv2.circle(frame, object_coord, 4, (255, 0, 0), -1)
-#                 cv2.putText(frame, f"{object_coord}", object_coord,
-#                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
-
-#                 if show_corner == True:
-#                     for corner in object_corners:
-#                         cv2.circle(frame, corner, 3, (0, 255, 0), -1)
-
-#         cv2.imshow("find_object", frame)
-#         k = cv.waitKey(1)
-#         if k == ord('q'):
-#             break
-
-#     cap.release()
-#     cv.destroyAllWindows()
-
 GOOD_IDCARD_MATCHER = 150
 
 
@@ -152,8 +108,6 @@ fill me
     try:
         if descs1 is not None and descs2 is not None:
             matches = matcher.knnMatch(descs1, descs2, 2)
-        else:
-            return None, 0, (None, None)
     except:
         print("error matcher.knnMatch", descs1, descs2)
         return None, 0, (None, None)
@@ -169,42 +123,63 @@ fill me
             m, n = match
             if m.distance < 0.75 * n.distance:
                 good.append(m)
-    # except:
-    #     print(type(matches), len(matches), type(matches[0]))
-    #     exit(-1)
-    # queryIndex for the small object, trainIndex for the scene )
-    if len(good) > GOOD_IDCARD_MATCHER:
-        # print("len(good)", len(good))
-        src_pts = np.float32([kpts1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kpts2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    
+    # if len(good) > GOOD_IDCARD_MATCHER:
+    #     # print("len(good)", len(good))
+    #     src_pts = np.float32([kpts1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    #     dst_pts = np.float32([kpts2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
-        Homography = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 4.0)[0]
+    #     Homography = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 4.0)[0]
         
-        if Homography is not None:
-            try:
-                h, w = image.shape[:2]
-                pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-                h, w = object_image.shape[:2]
-                dst = cv2.perspectiveTransform(pts, Homography)
-                perspectiveM = cv2.getPerspectiveTransform(np.float32(dst), pts)
-                bestest_object = cv2.warpPerspective(image, perspectiveM, (w, h), borderMode=cv2.BORDER_TRANSPARENT)
-            except:
-                bestest_object = None
-            #
-            object_coord, object_corners = get_object_coord(object_image, image, Homography)
-            return bestest_object, len(good), (object_coord, object_corners)
+    #     if Homography is not None:
+    #         try:
+    #             h, w = image.shape[:2]
+    #             pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+    #             h, w = object_image.shape[:2]
+    #             dst = cv2.perspectiveTransform(pts, Homography)
+    #             perspectiveM = cv2.getPerspectiveTransform(np.float32(dst), pts)
+    #             bestest_object = cv2.warpPerspective(image, perspectiveM, (w, h), borderMode=cv2.BORDER_TRANSPARENT)
+    #         except:
+    #             bestest_object = None
+    #         #
+    #         object_coord, object_corners = get_object_coord(object_image, image, Homography)
+    #         return bestest_object, len(good), (object_coord, object_corners)
 
     return None, len(good), (None, None)
+
+
+def get_circle(image, min_size = 100, blur_kernel=(5,5), erode_kernel=(2,2),dilation_kernel=(5,5),closing_kernel=(10,10)):
+    stat_max = None
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.blur(gray,blur_kernel)
+    adaptive = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,5,2)
+    kernel = np.ones(erode_kernel,np.uint8)
+    erosion = cv2.erode(adaptive,kernel,iterations = 1)
+    kernel = np.ones(dilation_kernel,np.uint8)
+    dilation = cv2.dilate(erosion,kernel,iterations = 1)
+    kernel = np.ones(closing_kernel,np.uint8)
+    closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel)
+    
+    stats = cv2.connectedComponentsWithStats(closing)[2]
+    closing = cv2.cvtColor(closing, cv2.COLOR_GRAY2BGR)
+    if len(stats)>1:
+        stats = stats[1:]
+        condition = (0.9 <= stats[:, 2] / stats[:, 3])  *(stats[:, 2] / stats[:, 3] <=1.1) * (stats[:, 2] >= min_size) * (stats[:, 3] >= min_size)
+        stats = stats[condition]
+        if len(stats)>0:
+            stat_max =  stats[np.argmax(stats[:, -1])][:-1]
+
+    return stat_max
+
 
 def getobject(image, object_images, detector, matcher, object_features, debug=False):
     '''
     fill me
     '''
-    max = 0
+    max = -1
     result = [None, -1, 0]
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    image_feature = detector.detectAndCompute(gray_image, None)
-    print("showing debug", debug)
+    # gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image_feature = detector.detectAndCompute(image, None)
     if debug:
         
         kpts2, descs2 = image_feature
@@ -217,3 +192,11 @@ def getobject(image, object_images, detector, matcher, object_features, debug=Fa
             final = matched_info
             max = matched_info[1]
     return final, object_type
+
+
+    
+
+if __name__ == "__main__":
+    image = cv2.imread("/media/hungtooc/Source/Public/applitcations/find-object/images/object_01.png")
+    a = contrast_image(image, clipLimit=40,tileGridSize=(2,2))
+    cv2.imwrite("temps/a.jpg", a)

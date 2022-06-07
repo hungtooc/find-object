@@ -76,103 +76,7 @@
     <property name="alignment">
      <set>Qt::AlignBottom|Qt::AlignHCenter</set>
     </property>
-    <widget class="QGroupBox" name="groupBox_4">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>180</y>
-       <width>331</width>
-       <height>301</height>
-      </rect>
-     </property>
-     <property name="title">
-      <string>Filters</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignBottom|Qt::AlignHCenter</set>
-     </property>
-     <widget class="QLabel" name="label_2">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>50</y>
-        <width>76</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>adaptive</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_4">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>30</y>
-        <width>41</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>blur</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_26">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>80</y>
-        <width>76</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>erosion</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_27">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>110</y>
-        <width>76</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>dilation</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_28">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>160</y>
-        <width>76</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>closing</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QLCDNumber" name="no_objectA">
+    <widget class="QLCDNumber" name="n_objectA">
      <property name="geometry">
       <rect>
        <x>80</x>
@@ -182,7 +86,7 @@
       </rect>
      </property>
     </widget>
-    <widget class="QLCDNumber" name="no_objectB">
+    <widget class="QLCDNumber" name="n_objectB">
      <property name="geometry">
       <rect>
        <x>80</x>
@@ -246,7 +150,7 @@
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
-    <widget class="QLCDNumber" name="no_objectC">
+    <widget class="QLCDNumber" name="n_objectC">
      <property name="geometry">
       <rect>
        <x>80</x>
@@ -313,7 +217,7 @@
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
-    <widget class="QLCDNumber" name="no_total">
+    <widget class="QLCDNumber" name="n_total">
      <property name="geometry">
       <rect>
        <x>240</x>
@@ -475,10 +379,10 @@
        </rect>
       </property>
       <property name="text">
-       <string>Coordinate:</string>
+       <string>Size:</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_current_object_coord">
+     <widget class="QLabel" name="label_current_object_size">
       <property name="geometry">
        <rect>
         <x>100</x>
@@ -623,7 +527,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap>images/object_demo.jpg</pixmap>
+        <pixmap>images/object_03.png</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
