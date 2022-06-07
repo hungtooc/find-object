@@ -44,9 +44,11 @@ class VideoThread(QThread):
             ret, frame = cap.read()
             print(frame.shape)
             if ret:
-                circle_max = get_circle(frame)
-                if circle_max is not None:
-                    cv2.rectangle(frame, (circle_max[0], circle_max[1]), (circle_max[0] + circle_max[2], circle_max[1] + circle_max[3]), (255,255,0))
+                circle_stat = get_circle(frame)
+                if circle_stat is not None:
+                    cv2.rectangle(frame, (circle_stat[0], circle_stat[1]), (circle_stat[0] + circle_stat[2], circle_stat[1] + circle_stat[3]), (255,255,0))
+                    circle_object = frame[circle_stat[1]:circle_stat[1] + circle_stat[3], circle_stat[0]:circle_stat[0] + circle_stat[2]]
+                    self.change_currentobject_signal.emit(circle_object)
                 # detected_object, object_type, _ = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features)
                 # output = getobject(frame, self.object_images, self.detector, self.matcher, self.object_features, debug )
                 # # print("type(output)", type(output))
