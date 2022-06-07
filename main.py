@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
+import time
 import cv2
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -19,7 +19,7 @@ class VideoThread(QThread):
     change_currentobjecttype_signal = pyqtSignal(str)
     change_currentobjectpos_signal = pyqtSignal(str)
     change_currentobjectsize_signal = pyqtSignal(str)
-
+    change_lcdtype_signal = pyqtSignal(int)
     detector, matcher = init_feature('sift')
     # load object & calculate object feature
     image_paths = ["images/object_01.png", "images/object_02.png", "images/object_03.png"]
@@ -39,9 +39,14 @@ class VideoThread(QThread):
         # camera_url=0
         # camera_url=1
         cap = cv2.VideoCapture(camera_url)
-        global mark_center, mark_corner, debug, image_resolution
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                collect_mark = int(frame.shape[0]*0.5)
+        global mark_center, mark_corner, debug, image_resolution, collected_flag
         while True:
             ret, frame = cap.read()
+            time.sleep(0.00001)
             if ret:
                 circle_stat = get_circle(frame)
                 if circle_stat is not None:
@@ -65,7 +70,12 @@ class VideoThread(QThread):
                         object_type = output[1]
                         self.change_currentobjecttype_signal.emit(object_names[object_type])
                         self.change_currentobject_signal.emit(circle_object)
-                        
+
+                        if center[1] > collect_mark and not collected_flag:
+                            self.change_lcdtype_signal.emit(object_type) #
+                            collected_flag = True
+                        if center[1] < collect_mark and collected_flag:
+                            collected_flag = False
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
@@ -104,6 +114,14 @@ def update_currentobjectpos(pos):
 def update_currentobjectsize(pos):
     ui.label_current_object_size.setText(pos)
 
+def add_collected(type):
+    if type == 0:
+        ui.n_objectA.display(ui.n_objectA.value()+1)
+    elif type == 1:
+        ui.n_objectB.display(ui.n_objectB.value()+1)
+    elif type == 2:
+        ui.n_objectC.display(ui.n_objectC.value()+1)
+    ui.n_total.display(ui.n_total.value()+1)
 def set_debug(state):
     global debug
     debug = state
@@ -126,7 +144,7 @@ if __name__ == "__main__":
     mark_center = ui.checkBox_markcenter.isChecked()
     mark_corner = ui.checkBox_markcorner.isChecked()
     debug = ui.checkBox_markdebug.isChecked()
-    
+    collected_flag = False
     ui.thread = VideoThread()
     
     # update image
@@ -140,6 +158,9 @@ if __name__ == "__main__":
     ui.thread.change_currentobjecttype_signal.connect(update_currentobjecttype)
     ui.thread.change_currentobjectpos_signal.connect(update_currentobjectpos)
     ui.thread.change_currentobjectsize_signal.connect(update_currentobjectsize)
+
+    #lcd
+    ui.thread.change_lcdtype_signal.connect(add_collected)
     ui.thread.start()
 
     MainWindow.show()

@@ -85,6 +85,21 @@
        <height>31</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>false</bool>
+     </property>
+     <property name="digitCount">
+      <number>1</number>
+     </property>
     </widget>
     <widget class="QLCDNumber" name="n_objectB">
      <property name="geometry">
@@ -94,6 +109,28 @@
        <width>98</width>
        <height>31</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+       <stylestrategy>PreferDefault</stylestrategy>
+      </font>
+     </property>
+     <property name="cursor">
+      <cursorShape>ArrowCursor</cursorShape>
+     </property>
+     <property name="focusPolicy">
+      <enum>Qt::StrongFocus</enum>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>false</bool>
+     </property>
+     <property name="digitCount">
+      <number>1</number>
      </property>
     </widget>
     <widget class="QLabel" name="label_3">
@@ -159,6 +196,21 @@
        <height>31</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>false</bool>
+     </property>
+     <property name="digitCount">
+      <number>1</number>
+     </property>
     </widget>
     <widget class="QLabel" name="label_7">
      <property name="geometry">
@@ -190,15 +242,17 @@
     <widget class="QLabel" name="label_8">
      <property name="geometry">
       <rect>
-       <x>170</x>
+       <x>183</x>
        <y>40</y>
-       <width>64</width>
+       <width>51</width>
        <height>21</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <pointsize>13</pointsize>
+       <weight>50</weight>
+       <bold>false</bold>
       </font>
      </property>
      <property name="layoutDirection">
@@ -261,6 +315,9 @@
     </widget>
    </widget>
    <widget class="QTabWidget" name="tabWidget">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -270,7 +327,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -595,6 +652,9 @@
     </property>
     <property name="text">
      <string>Shutdown</string>
+    </property>
+    <property name="icon">
+     <iconset theme="shut"/>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_4">
