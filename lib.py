@@ -93,7 +93,7 @@ def find_homography(object_image, frame, detector, matcher, desc1, object_featur
     return Homography
 
 
-GOOD_IDCARD_MATCHER = 150
+GOOD_MATCHER = 150
 
 
 
@@ -105,26 +105,22 @@ fill me
     kpts1, descs1 = object_feature
     kpts2, descs2 = image_feature
     
-    try:
-        if descs1 is not None and descs2 is not None:
-            matches = matcher.knnMatch(descs1, descs2, 2)
-    except:
-        print("error matcher.knnMatch", descs1, descs2)
-        return None, 0, (None, None)
-
-    # Sort by their distance.
-    matches = sorted(matches, key=lambda x: x[0].distance)
-    # Ratio test, to get good matches.
     good = []
-    # try:
-    # print(type(matches), len(matches), type(matches[0]))
-    for match in matches:
-        if len(match) ==2:
-            m, n = match
-            if m.distance < 0.75 * n.distance:
-                good.append(m)
+
+    if descs1 is not None and descs2 is not None:
+        matches = matcher.knnMatch(descs1, descs2, 2)
+        matches = sorted(matches, key=lambda x: x[0].distance)
+        # Ratio test, to get good matches.
+        
+        # try:
+        # print(type(matches), len(matches), type(matches[0]))
+        for match in matches:
+            if len(match) ==2:
+                m, n = match
+                if m.distance < 0.75 * n.distance:
+                    good.append(m)
+
     
-    # if len(good) > GOOD_IDCARD_MATCHER:
     #     # print("len(good)", len(good))
     #     src_pts = np.float32([kpts1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     #     dst_pts = np.float32([kpts2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -145,14 +141,15 @@ fill me
     #         object_coord, object_corners = get_object_coord(object_image, image, Homography)
     #         return bestest_object, len(good), (object_coord, object_corners)
 
+
     return None, len(good), (None, None)
 
 
-def get_circle(image, min_size = 100, blur_kernel=(5,5), erode_kernel=(2,2),dilation_kernel=(5,5),closing_kernel=(10,10)):
+def get_circle(image, min_size = 100, blur_kernel=(5,5),adaptive_size=3, erode_kernel=(2,2),dilation_kernel=(5,5),closing_kernel=(10,10)):
     stat_max = None
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.blur(gray,blur_kernel)
-    adaptive = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,5,2)
+    adaptive = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,adaptive_size*2+1,2)
     kernel = np.ones(erode_kernel,np.uint8)
     erosion = cv2.erode(adaptive,kernel,iterations = 1)
     kernel = np.ones(dilation_kernel,np.uint8)
@@ -169,24 +166,26 @@ def get_circle(image, min_size = 100, blur_kernel=(5,5), erode_kernel=(2,2),dila
         if len(stats)>0:
             stat_max =  stats[np.argmax(stats[:, -1])][:-1]
 
-    return stat_max
+    return stat_max, closing
 
 
-def getobject(image, object_images, detector, matcher, object_features, debug=False):
+def getobject(image, object_images, detector, matcher, object_features, unknown_threshold=20, debug=False):
     '''
     fill me
     '''
-    max = -1
-    result = [None, -1, 0]
-    # gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    max = unknown_threshold
+    object_type = -1
+    final = None, -1, (None, None)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     image_feature = detector.detectAndCompute(image, None)
     if debug:
         
         kpts2, descs2 = image_feature
         image = cv.drawKeypoints(image,kpts2,image,flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        # cv.imwrite('sift_keypoints.jpg',img)
+        
     for i, (object_image, object_feature) in enumerate(zip(object_images, object_features)):
         matched_info = ObjectMatching(image, object_image, matcher, object_feature, image_feature)
+        # print(f"object {i}: {matched_info[1]}")
         if matched_info[1] >= max:
             object_type = i
             final = matched_info

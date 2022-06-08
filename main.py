@@ -23,7 +23,7 @@ class VideoThread(QThread):
     detector, matcher = init_feature('sift')
     # load object & calculate object feature
     image_paths = ["images/object_01.png", "images/object_02.png", "images/object_03.png"]
-    object_images = [cv2.imread(image_path) for image_path in image_paths]
+    object_images = [cv2.imread(image_path, cv2.IMREAD_GRAYSCALE) for image_path in image_paths]
     object_features = []
     for index, object_image in enumerate(object_images):
         feature = detector.detectAndCompute(object_image, None)
@@ -43,39 +43,47 @@ class VideoThread(QThread):
             ret, frame = cap.read()
             if ret:
                 collect_mark = int(frame.shape[0]*0.5)
-        global mark_center, mark_corner, debug, image_resolution, collected_flag
+        global mark_center, mark_corner, debug, image_resolution, collected_flag,min_size, unknown_threshold, blur, erode, dilation, closing, adaptive
         while True:
             ret, frame = cap.read()
             time.sleep(0.00001)
             if ret:
-                circle_stat = get_circle(frame)
+                circle_stat, closing_image = get_circle(frame,min_size,blur_kernel=(blur, blur),adaptive_size=adaptive, erode_kernel=(erode, erode), dilation_kernel=(dilation, dilation), closing_kernel=(closing, closing))
+                
                 if circle_stat is not None:
-                    center = (circle_stat[0] +  circle_stat[2]//2, circle_stat[1] +  circle_stat[3]//2)
-                    self.change_currentobjectpos_signal.emit(str(center))
-                    self.change_currentobjectsize_signal.emit(f"{circle_stat[2]}x{circle_stat[3]}")
                     
                     circle_object = frame[circle_stat[1]:circle_stat[1] + circle_stat[3], circle_stat[0]:circle_stat[0] + circle_stat[2]].copy()
-                    if mark_center:          
-                        cv2.circle(frame, center, 4, (255, 0, 0), -1)
-                        cv2.putText(frame, f"{center}", center, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0))
-                    if mark_corner:
-                        cv2.rectangle(frame, (circle_stat[0], circle_stat[1]), (circle_stat[0] + circle_stat[2], circle_stat[1] + circle_stat[3]), (255,255,0))
+                    
                     
                     ## classify
-                    output = getobject(circle_object, self.object_images, self.detector, self.matcher, self.object_features, debug )
-                    # print("type(output)", type(output))
+                    output = getobject(circle_object, self.object_images, self.detector, self.matcher, self.object_features, unknown_threshold=unknown_threshold,debug=debug)
+                    
+                    if debug:
+                        frame = cv.addWeighted(frame, 1.0, closing_image,0.5, 0.0)
+
                     if output is not None:
                         
                         bestest_object, confident_score, (object_coord, object_corners) = output[0]
                         object_type = output[1]
-                        self.change_currentobjecttype_signal.emit(object_names[object_type])
-                        self.change_currentobject_signal.emit(circle_object)
+                        if object_type != -1:
+                            center = (circle_stat[0] +  circle_stat[2]//2, circle_stat[1] +  circle_stat[3]//2)
+                            self.change_currentobjectpos_signal.emit(str(center))
+                            self.change_currentobjectsize_signal.emit(f"{circle_stat[2]}x{circle_stat[3]}")
 
-                        if center[1] > collect_mark and not collected_flag:
-                            self.change_lcdtype_signal.emit(object_type) #
-                            collected_flag = True
-                        if center[1] < collect_mark and collected_flag:
-                            collected_flag = False
+                            if mark_center:          
+                                cv2.circle(frame, center, 4, (255, 0, 0), -1)
+                                cv2.putText(frame, f"{center}", center, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255),2)
+                            if mark_corner:
+                                cv2.rectangle(frame, (circle_stat[0], circle_stat[1]), (circle_stat[0] + circle_stat[2], circle_stat[1] + circle_stat[3]), (255,255,0))
+
+                            self.change_currentobjecttype_signal.emit(object_names[object_type])
+                            self.change_currentobject_signal.emit(circle_object)
+                            # cv2.imwrite("circle_object.jpg", circle_object)
+                            if center[1] > collect_mark and not collected_flag:
+                                self.change_lcdtype_signal.emit(object_type) #
+                                collected_flag = True
+                            if center[1] < collect_mark and collected_flag:
+                                collected_flag = False
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
@@ -122,6 +130,35 @@ def add_collected(type):
     elif type == 2:
         ui.n_objectC.display(ui.n_objectC.value()+1)
     ui.n_total.display(ui.n_total.value()+1)
+
+def set_minsize(value):
+    global min_size
+    min_size = value
+
+def set_unknownthreshold(value):
+    global unknown_threshold
+    unknown_threshold = value
+
+def set_blur(value):
+    global blur
+    blur = value
+
+def set_adaptive(value):
+    global adaptive
+    adaptive = value
+
+def set_erode(value):
+    global erode
+    erode = value
+
+def set_dilation(value):
+    global dilation
+    dilation = value
+
+def set_closing(value):
+    global closing
+    closing = value
+
 def set_debug(state):
     global debug
     debug = state
@@ -134,13 +171,39 @@ def set_mark_corner(state):
     global mark_corner
     mark_corner = state
 
+
+
 if __name__ == "__main__":
     object_names = ["A", "B", "C"]
-    
+    min_size = 100
+    unknown_threshold = 20
+    blur =5
+    adaptive=2
+    erode=2
+    dilation =5
+    closing=10
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
+    
+    # slider
+    ui.horizontalSlider_minsize.setValue(min_size)
+    ui.horizontalSlider_unknownthreshold.setValue(unknown_threshold)
+    ui.horizontalSlider_blur.setValue(blur)
+    ui.horizontalSlider_adaptive.setValue(adaptive)
+    ui.horizontalSlider_erode.setValue(erode)
+    ui.horizontalSlider_dilation.setValue(dilation)
+    ui.horizontalSlider_closing.setValue(closing)
+
+    ui.horizontalSlider_minsize.valueChanged.connect(set_minsize)
+    ui.horizontalSlider_unknownthreshold.valueChanged.connect(set_unknownthreshold)
+    ui.horizontalSlider_blur.valueChanged.connect(set_blur)
+    ui.horizontalSlider_adaptive.valueChanged.connect(set_adaptive)
+    ui.horizontalSlider_erode.valueChanged.connect(set_erode)
+    ui.horizontalSlider_dilation.valueChanged.connect(set_dilation)
+    ui.horizontalSlider_closing.valueChanged.connect(set_closing)
+    
     mark_center = ui.checkBox_markcenter.isChecked()
     mark_corner = ui.checkBox_markcorner.isChecked()
     debug = ui.checkBox_markdebug.isChecked()
