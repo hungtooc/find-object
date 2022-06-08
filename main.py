@@ -84,7 +84,7 @@ class VideoThread(QThread):
                                 collected_flag = True
                             if center[1] < int(frame.shape[0]*(collect_line/100)) and collected_flag:
                                 collected_flag = False
-                frame = cv2.line(frame, (0, int(frame.shape[0]*(collect_line/100))), (frame.shape[1], int(frame.shape[0]*(collect_line/100))), (255,255,255))
+                frame = cv2.line(frame, (int(frame.shape[1]*(collect_line/100)), 0), (int(frame.shape[1]*(collect_line/100)), frame.shape[0]), (255,255,255))
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
