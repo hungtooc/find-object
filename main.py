@@ -41,9 +41,8 @@ class VideoThread(QThread):
         cap = cv2.VideoCapture(camera_url)
         if cap.isOpened():
             ret, frame = cap.read()
-            if ret:
-                collect_mark = int(frame.shape[0]*0.5)
-        global mark_center, mark_corner, debug, image_resolution, collected_flag,min_size, unknown_threshold, blur, erode, dilation, closing, adaptive
+            
+        global mark_center, mark_corner, debug, image_resolution, collected_flag,min_size, unknown_threshold, blur, erode, dilation, closing, adaptive, collect_line
         while True:
             ret, frame = cap.read()
             time.sleep(0.00001)
@@ -78,12 +77,14 @@ class VideoThread(QThread):
 
                             self.change_currentobjecttype_signal.emit(object_names[object_type])
                             self.change_currentobject_signal.emit(circle_object)
-                            # cv2.imwrite("circle_object.jpg", circle_object)
-                            if center[1] > collect_mark and not collected_flag:
+                            
+                            # Collect
+                            if center[1] > int(frame.shape[0]*(collect_line/100)) and not collected_flag:
                                 self.change_lcdtype_signal.emit(object_type) #
                                 collected_flag = True
-                            if center[1] < collect_mark and collected_flag:
+                            if center[1] < int(frame.shape[0]*(collect_line/100)) and collected_flag:
                                 collected_flag = False
+                frame = cv2.line(frame, (0, int(frame.shape[0]*(collect_line/100))), (frame.shape[1], int(frame.shape[0]*(collect_line/100))), (255,255,255))
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
@@ -159,6 +160,10 @@ def set_closing(value):
     global closing
     closing = value
 
+def set_collect_line(value):
+    global collect_line
+    collect_line = value
+
 def set_debug(state):
     global debug
     debug = state
@@ -182,6 +187,7 @@ if __name__ == "__main__":
     erode=2
     dilation =5
     closing=10
+    collect_line = 50
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
@@ -195,7 +201,7 @@ if __name__ == "__main__":
     ui.horizontalSlider_erode.setValue(erode)
     ui.horizontalSlider_dilation.setValue(dilation)
     ui.horizontalSlider_closing.setValue(closing)
-
+    ui.horizontalSlider_collectline.setValue(collect_line)
     ui.horizontalSlider_minsize.valueChanged.connect(set_minsize)
     ui.horizontalSlider_unknownthreshold.valueChanged.connect(set_unknownthreshold)
     ui.horizontalSlider_blur.valueChanged.connect(set_blur)
@@ -203,6 +209,7 @@ if __name__ == "__main__":
     ui.horizontalSlider_erode.valueChanged.connect(set_erode)
     ui.horizontalSlider_dilation.valueChanged.connect(set_dilation)
     ui.horizontalSlider_closing.valueChanged.connect(set_closing)
+    ui.horizontalSlider_collectline.valueChanged.connect(set_collect_line)
     
     mark_center = ui.checkBox_markcenter.isChecked()
     mark_corner = ui.checkBox_markcorner.isChecked()
