@@ -6,12 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1072</width>
-    <height>684</height>
+    <width>1249</width>
+    <height>547</height>
    </rect>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::WheelFocus</enum>
   </property>
   <property name="windowTitle">
    <string>find object</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>images/object_01.png</normaloff>images/object_01.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -25,8 +32,8 @@
      <rect>
       <x>290</x>
       <y>10</y>
-      <width>481</width>
-      <height>631</height>
+      <width>651</width>
+      <height>491</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -40,8 +47,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>480</width>
-       <height>631</height>
+       <width>640</width>
+       <height>480</height>
       </rect>
      </property>
      <property name="sizePolicy">
@@ -64,10 +71,10 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>780</x>
+      <x>950</x>
       <y>10</y>
       <width>281</width>
-      <height>571</height>
+      <height>401</height>
      </rect>
     </property>
     <property name="title">
@@ -136,7 +143,7 @@
     <widget class="QLabel" name="label_3">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>50</y>
        <width>66</width>
        <height>21</height>
@@ -163,7 +170,7 @@
     <widget class="QLabel" name="label_5">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>90</y>
        <width>66</width>
        <height>21</height>
@@ -215,7 +222,7 @@
     <widget class="QLabel" name="label_7">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>130</y>
        <width>66</width>
        <height>21</height>
@@ -242,7 +249,7 @@
     <widget class="QLabel" name="label_8">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>170</y>
        <width>66</width>
        <height>21</height>
@@ -400,11 +407,11 @@
       <x>10</x>
       <y>10</y>
       <width>271</width>
-      <height>631</height>
+      <height>491</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -878,7 +885,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>450</y>
+        <y>400</y>
         <width>140</width>
         <height>24</height>
        </rect>
@@ -894,7 +901,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>490</y>
+        <y>440</y>
         <width>140</width>
         <height>24</height>
        </rect>
@@ -910,7 +917,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>470</y>
+        <y>420</y>
         <width>140</width>
         <height>24</height>
        </rect>
@@ -1004,8 +1011,8 @@
    <widget class="QPushButton" name="pushButton_shutdown">
     <property name="geometry">
      <rect>
-      <x>930</x>
-      <y>590</y>
+      <x>1100</x>
+      <y>430</y>
       <width>131</width>
       <height>41</height>
      </rect>
@@ -1021,8 +1028,8 @@
    <widget class="QPushButton" name="pushButton_restart">
     <property name="geometry">
      <rect>
-      <x>780</x>
-      <y>590</y>
+      <x>950</x>
+      <y>430</y>
       <width>131</width>
       <height>41</height>
      </rect>
@@ -1037,7 +1044,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1072</width>
+     <width>1249</width>
      <height>22</height>
     </rect>
    </property>
