@@ -42,7 +42,7 @@ class VideoThread(QThread):
         if cap.isOpened():
             ret, frame = cap.read()
             
-        global mark_center, mark_corner, debug, image_resolution, collected_flag,min_size, unknown_threshold, blur, erode, dilation, closing, adaptive, collect_line, length_x, length_y, center_coord
+        global mark_center, mark_corner, debug, image_resolution, sent_flag,min_size, unknown_threshold, blur, erode, dilation, closing, adaptive, collect_line, length_x, length_y, center_coord, coord_logs
         while True:
             ret, frame = cap.read()
             time.sleep(0.00001)
@@ -69,6 +69,30 @@ class VideoThread(QThread):
                             # to robot coord
                             temp = object_center[0]/frame.shape[1], object_center[1]/frame.shape[0] # normalize pixel 0-1
                             object_coord =  int(0 - temp[1]*length_x) , int(temp[0]*length_y - 0.5*length_y)
+                            
+                            if not belt_run:
+                                coord_logs.add_coord(object_coord)
+
+                                # update state
+                                set_detected("True")
+
+                                if coord_logs.is_valid():
+                                    set_valid("True")
+                                    # send data to arduino
+                                    data = f"{object_coord[0]}:{object_coord[1]}:{object_type}\n"
+                                    # add code send data to arduino
+
+                                    # add code run belt
+                                    runbelt_clicked()
+                                    # done.
+                                    set_sent("True")
+                                    coord_logs.reset()
+                                else:
+                                    set_valid("False")
+                                    set_sent("False")
+                                
+                                
+
                             self.change_currentobjectpos_signal.emit(str(object_coord))
                             self.change_currentobjectsize_signal.emit(f"{int(circle_stat[2]/frame.shape[1]*length_y)}x{int(circle_stat[3]/frame.shape[0]*length_x)}")
 
@@ -80,13 +104,8 @@ class VideoThread(QThread):
 
                             self.change_currentobjecttype_signal.emit(object_names[object_type])
                             self.change_currentobject_signal.emit(circle_object)
-                            
-                            # # Collect
-                            # if object_center[1] > int(frame.shape[0]*(collect_line/100)) and not collected_flag:
-                            #     self.change_lcdtype_signal.emit(object_type) #
-                            #     collected_flag = True
-                            # if object_center[1] < int(frame.shape[0]*(collect_line/100)) and collected_flag:
-                            #     collected_flag = False
+                else:
+                    set_detected("False")
                 frame = cv2.line(frame, (int(frame.shape[1]*(collect_line/100)), 0), (int(frame.shape[1]*(collect_line/100)), frame.shape[0]), (255,255,255))
                 self.change_camera_signal.emit(frame)
             else: cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -134,6 +153,31 @@ def add_collected(type):
     elif type == 2:
         ui.n_objectC.display(ui.n_objectC.value()+1)
     ui.n_total.display(ui.n_total.value()+1)
+
+def set_detected(status):
+    ui.label_isdetected.setText(status)
+
+def set_valid(status):
+    ui.label_isvalid.setText(status)
+
+def set_sent(status):
+    ui.label_issent.setText(status)
+
+def runbelt_clicked():
+    global belt_run
+    belt_run = True
+    ui.pushButton_runbelt.setDisabled(True)
+    ui.pushButton_stopbelt.setDisabled(False)
+    ui.pushButton_runbelt.animateClick()
+    ui.label_isrun.setText("Running")
+
+def stopbelt_clicked():
+    global belt_run
+    belt_run = False
+    ui.pushButton_runbelt.setDisabled(False)
+    ui.pushButton_stopbelt.setDisabled(True)
+    ui.pushButton_stopbelt.animateClick()
+    ui.label_isrun.setText("Stopping")
 
 def set_minsize(value):
     global min_size
@@ -188,6 +232,31 @@ def set_size():
     length_y = ui.spinBox_bottomright_y.value() - ui.spinBox_topleft_y.value()
     print(f"set size: length_x: {length_x}, length_y: {length_y}")
 
+class CoordLog:
+    def __init__(self, length=10, variance_threshold=50.0):
+        self.variance_threshold = variance_threshold
+        self.data = np.array([[0,0]])
+        self.length = length
+
+    def add_coord(self, coord):
+        if self.data.shape[0] >= self.length:
+            self.data = self.data[1:]
+        self.data = np.vstack([self.data, coord])
+        # assert self.data.shape[0] == self.length
+    def reset(self):
+        self.data = np.array([[0,0]])
+
+    def is_valid(self):
+        if self.data.shape[0] < self.length:
+            return False
+        if all(np.var(self.data, axis=0) < self.variance_threshold):
+            return True
+        else:
+            return False
+
+
+
+
 if __name__ == "__main__":
     object_names = ["A", "B", "C"]
     min_size = 100
@@ -208,7 +277,8 @@ if __name__ == "__main__":
     length_x = topleft_x - bottomright_x
     length_y = bottomright_y - topleft_y
 
-
+    coord_logs = CoordLog(variance_threshold=10)
+    belt_run = False
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
@@ -224,6 +294,8 @@ if __name__ == "__main__":
     ui.spinBox_topleft_y.valueChanged.connect(set_size)
     ui.spinBox_bottomright_x.valueChanged.connect(set_size)
     ui.spinBox_bottomright_y.valueChanged.connect(set_size)
+    ui.pushButton_runbelt.clicked.connect(runbelt_clicked)
+    ui.pushButton_stopbelt.clicked.connect(stopbelt_clicked)
     
 
     # slider
@@ -234,7 +306,7 @@ if __name__ == "__main__":
     ui.horizontalSlider_erode.setValue(erode)
     ui.horizontalSlider_dilation.setValue(dilation)
     ui.horizontalSlider_closing.setValue(closing)
-    ui.horizontalSlider_collectline.setValue(collect_line)
+    # ui.horizontalSlider_collectline.setValue(collect_line)
     # ui.horizontalSlider_minsize.valueChanged.connect(set_minsize)
     # ui.horizontalSlider_unknownthreshold.valueChanged.connect(set_unknownthreshold)
     ui.horizontalSlider_blur.valueChanged.connect(set_blur)
@@ -242,12 +314,12 @@ if __name__ == "__main__":
     ui.horizontalSlider_erode.valueChanged.connect(set_erode)
     ui.horizontalSlider_dilation.valueChanged.connect(set_dilation)
     ui.horizontalSlider_closing.valueChanged.connect(set_closing)
-    ui.horizontalSlider_collectline.valueChanged.connect(set_collect_line)
+    # ui.horizontalSlider_collectline.valueChanged.connect(set_collect_line)
     
     mark_center = ui.checkBox_markcenter.isChecked()
     mark_corner = ui.checkBox_markcorner.isChecked()
     debug = ui.checkBox_markdebug.isChecked()
-    collected_flag = False
+    sent_flag = False
     ui.thread = VideoThread()
     
     # update image
