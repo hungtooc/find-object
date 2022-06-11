@@ -46,6 +46,13 @@ class VideoThread(QThread):
         while True:
             ret, frame = cap.read()
             time.sleep(0.00001)
+            if arduino_read_belt_state() == False: ## arduino belt are stopping
+                if belt_run == True: # if belt in UI are not stopped yet
+                    stopbelt_clicked() # stop belt in UI
+            else: ## arduino belt are running
+                if belt_run == False: # if belt in UI are not run yet
+                    runbelt_clicked() # stop belt in UI
+
             if ret:
                 circle_stat, closing_image = get_circle(frame,min_size,blur_kernel=(blur, blur),adaptive_size=adaptive, erode_kernel=(erode, erode), dilation_kernel=(dilation, dilation), closing_kernel=(closing, closing))
                 
@@ -232,6 +239,8 @@ def set_size():
     length_y = ui.spinBox_bottomright_y.value() - ui.spinBox_topleft_y.value()
     print(f"set size: length_x: {length_x}, length_y: {length_y}")
 
+def arduino_read_belt_state():
+    pass 
 class CoordLog:
     def __init__(self, length=10, variance_threshold=50.0):
         self.variance_threshold = variance_threshold
